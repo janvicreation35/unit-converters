@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f0f4f8;
+      font-family: system-ui, sans-serif;
+    }
+    .converter-container {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      max-width: 600px;
+      margin: 40px auto;
+      overflow: hidden;
+    }
+    .ruler-watermark {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 100px;
+      opacity: 0.1;
+      transform: rotate(45deg);
+    }
+    .formula-box {
+      background-color: #fef9c3;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #4b5563;
+    }
+    .input-field {
+      font-size: 24px;
+      text-align: center;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px;
+      width: 100%;
+      max-width: 250px; /* Increased to accommodate larger numbers */
+      box-sizing: border-box;
+      overflow-wrap: break-word; /* Allow long numbers to wrap */
+    }
+    .unit-dropdown {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      color: #4b5563;
+      font-size: 16px;
+      text-align: center;
+      padding: 5px;
+      appearance: none;
+      background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3e%3cpolyline points="6 9 12 15 18 9"%3e%3c/polyline%3e%3c/svg%3e');
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      background-size: 1em;
+      max-width: 250px; /* Match the input field max-width */
+      box-sizing: border-box;
+    }
+    .equals-sign {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4b5563;
+      margin: 0 10px;
+    }
+    .value-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="converter-container">
+    <img src="https://via.placeholder.com/100x20?text=Ruler" alt="Ruler Watermark" class="ruler-watermark">
+    <div class="flex justify-between items-center mb-4">
+      <select id="conversionType" onchange="updateUnits()" class="p-2 border rounded-md bg-white text-gray-700 w-full">
+        <option value="length">Length</option>
+        <option value="area">Area</option>
+        <option value="mass">Mass</option>
+        <option value="speed">Speed</option>
+        <option value="volume">Volume</option>
+        <option value="temperature">Temperature</option>
+        <option value="time">Time</option>
+        <option value="digitalStorage">Digital Storage</option>
+        <option value="fuelEconomy">Fuel Economy</option>
+      </select>
+    </div>
+
+    <div class="flex items-center justify-between gap-4">
+      <div class="value-container">
+        <input type="number" id="inputValue" value="1" class="input-field" step="any">
+        <select id="fromUnit" class="unit-dropdown"></select>
+      </div>
+      <span class="equals-sign">=</span>
+      <div class="value-container">
+        <span id="outputValue" class="input-field"></span>
+        <select id="toUnit" class="unit-dropdown"></select>
+      </div>
+    </div>
+
+    <div class="formula-box">
+      <span class="font-semibold">Formula:</span> <span id="formulaText">multiply the length value by 100</span>
+    </div>
+  </div>
+
+  <script>
+    const conversionFactors = {
+      length: {
+        units: ["Kilometre", "Metre", "Centimetre", "Millimetre", "Micrometre", "Nanometre", "Mile", "Yard", "Foot", "Inch", "Nautical mile"],
+        baseUnit: "Metre",
+        factors: {
+          Kilometre: 1000,
+          Metre: 1,
+          Centimetre: 0.01,
+          Millimetre: 0.001,
+          Micrometre: 0.000001,
+          Nanometre: 0.000000001,
+          Mile: 1609.34,
+          Yard: 0.9144,
+          Foot: 0.3048,
+          Inch: 0.0254,
+          "Nautical mile": 1852
+        },
+        formulas: {
+          "Metre_to_Centimetre": "multiply the length value by 100",
+          "Centimetre_to_Metre": "divide the length value by 100",
+          "Metre_to_Millimetre": "multiply the length value by 1000",
+          "Millimetre_to_Metre": "divide the length value by 1000",
+          "Kilometre_to_Metre": "multiply the length value by 1000",
+          "Metre_to_Kilometre": "divide the length value by 1000",
+          "Millimetre_to_Kilometre": "divide the length value by 1,000,000",
+          "Kilometre_to_Millimetre": "multiply the length value by 1,000,000",
+          "Nanometre_to_Metre": "divide the length value by 1,000,000,000",
+          "Metre_to_Nanometre": "multiply the length value by 1,000,000,000",
+          "Nanometre_to_Kilometre": "divide the length value by 1,000,000,000,000",
+          "Kilometre_to_Nanometre": "multiply the length value by 1,000,000,000,000",
+          "Metre_to_Mile": "multiply the length value by 0.000621371",
+          "Mile_to_Metre": "multiply the length value by 1609.34"
+        }
+      },
+      temperature: {
+        units: ["Celsius", "Fahrenheit", "Kelvin"],
+        baseUnit: "Celsius",
+        convert: (value, fromUnit, toUnit) => {
+          let celsius;
+          if (fromUnit === "Celsius") celsius = value;
+          else if (fromUnit === "Fahrenheit") celsius = (value - 32) * 5/9;
+          else celsius = value - 273.15;
+
+          if (toUnit === "Celsius") return celsius;
+          else if (toUnit === "Fahrenheit") return (celsius * 9/5) + 32;
+          else return celsius + 273.15;
+        },
+        formulas: {
+          "Celsius_to_Fahrenheit": "multiply the temperature by 9/5, then add 32",
+          "Fahrenheit_to_Celsius": "subtract 32 from the temperature, then multiply by 5/9",
+          "Celsius_to_Kelvin": "add 273.15 to the temperature",
+          "Kelvin_to_Celsius": "subtract 273.15 from the temperature"
+        }
+      },
+      area: {
+        units: ["Square kilometre", "Square metre", "Square mile", "Square yard", "Square foot", "Square inch", "Hectare", "Acre"],
+        baseUnit: "Square metre",
+        factors: {
+          "Square kilometre": 1000000,
+          "Square metre": 1,
+          "Square mile": 2589988.11,
+          "Square yard": 0.836127,
+          "Square foot": 0.092903,
+          "Square inch": 0.00064516,
+          Hectare: 10000,
+          Acre: 4046.86
+        },
+        formulas: {
+          "Square metre_to_Square kilometre": "divide the area value by 1,000,000",
+          "Square kilometre_to_Square metre": "multiply the area value by 1,000,000",
+          "Square metre_to_Square mile": "divide the area value by 2,589,988.11",
+          "Square mile_to_Square metre": "multiply the area value by 2,589,988.11",
+          "Square inch_to_Square inch": "No conversion needed (same unit)"
+        }
+      },
+      mass: {
+        units: ["Tonne", "Kilogram", "Gram", "Milligram", "Microgram", "Pound", "Ounce"],
+        baseUnit: "Kilogram",
+        factors: {
+          Tonne: 1000,
+          Kilogram: 1,
+          Gram: 0.001,
+          Milligram: 0.000001,
+          Microgram: 0.000000001,
+          Pound: 0.453592,
+          Ounce: 0.0283495
+        },
+        formulas: {
+          "Kilogram_to_Gram": "multiply the mass value by 1000",
+          "Gram_to_Kilogram": "divide the mass value by 1000",
+          "Kilogram_to_Pound": "multiply the mass value by 2.20462",
+          "Pound_to_Kilogram": "multiply the mass value by 0.453592"
+        }
+      },
+      speed: {
+        units: ["Metre/second", "Kilometre/hour", "Mile/hour", "Knot"],
+        baseUnit: "Metre/second",
+        factors: {
+          "Metre/second": 1,
+          "Kilometre/hour": 0.277778,
+          "Mile/hour": 0.44704,
+          Knot: 0.514444
+        },
+        formulas: {
+          "Metre/second_to_Kilometre/hour": "multiply the speed value by 3.6",
+          "Kilometre/hour_to_Metre/second": "divide the speed value by 3.6",
+          "Metre/second_to_Mile/hour": "multiply the speed value by 2.23694",
+          "Mile/hour_to_Metre/second": "multiply the speed value by 0.44704"
+        }
+      },
+      volume: {
+        units: ["Cubic metre", "Litre", "Millilitre", "Cubic foot", "Cubic inch", "Gallon", "Quart", "Pint", "Cup"],
+        baseUnit: "Litre",
+        factors: {
+          "Cubic metre": 1000,
+          Litre: 1,
+          Millilitre: 0.001,
+          "Cubic foot": 28.3168,
+          "Cubic inch": 0.0163871,
+          Gallon: 3.78541,
+          Quart: 0.946353,
+          Pint: 0.473176,
+          Cup: 0.236588
+        },
+        formulas: {
+          "Litre_to_Millilitre": "multiply the volume value by 1000",
+          "Millilitre_to_Litre": "divide the volume value by 1000",
+          "Litre_to_Gallon": "multiply the volume value by 0.264172",
+          "Gallon_to_Litre": "multiply the volume value by 3.78541"
+        }
+      },
+      time: {
+        units: ["Second", "Minute", "Hour", "Day", "Week", "Month", "Year"],
+        baseUnit: "Second",
+        factors: {
+          Second: 1,
+          Minute: 60,
+          Hour: 3600,
+          Day: 86400,
+          Week: 604800,
+          Month: 2628000,
+          Year: 31536000
+        },
+        formulas: {
+          "Second_to_Minute": "divide the time value by 60",
+          "Minute_to_Second": "multiply the time value by 60",
+          "Hour_to_Second": "multiply the time value by 3600",
+          "Second_to_Hour": "divide the time value by 3600"
+        }
+      },
+      digitalStorage: {
+        units: ["Bit", "Byte", "Kilobyte", "Megabyte", "Gigabyte", "Terabyte"],
+        baseUnit: "Byte",
+        factors: {
+          Bit: 0.125,
+          Byte: 1,
+          Kilobyte: 1000,
+          Megabyte: 1000000,
+          Gigabyte: 1000000000,
+          Terabyte: 1000000000000
+        },
+        formulas: {
+          "Byte_to_Kilobyte": "divide the storage value by 1000",
+          "Kilobyte_to_Byte": "multiply the storage value by 1000",
+          "Byte_to_Megabyte": "divide the storage value by 1,000,000",
+          "Megabyte_to_Byte": "multiply the storage value by 1,000,000"
+        }
+      },
+      fuelEconomy: {
+        units: ["Miles/gallon", "Kilometres/litre", "Litres/100km"],
+        baseUnit: "Kilometres/litre",
+        convert: (value, fromUnit, toUnit) => {
+          let kmPerLitre;
+          if (fromUnit === "Kilometres/litre") kmPerLitre = value;
+          else if (fromUnit === "Miles/gallon") kmPerLitre = value * 0.425144;
+          else kmPerLitre = 100 / (value * 0.01);
+
+          if (toUnit === "Kilometres/litre") return kmPerLitre;
+          else if (toUnit === "Miles/gallon") return kmPerLitre / 0.425144;
+          else return 100 / (kmPerLitre * 0.01);
+        },
+        formulas: {
+          "Miles/gallon_to_Kilometres/litre": "multiply the fuel economy value by 0.425144",
+          "Kilometres/litre_to_Miles/gallon": "divide the fuel economy value by 0.425144",
+          "Kilometres/litre_to_Litres/100km": "divide 100 by the fuel economy value"
+        }
+      }
+    };
+
+    function populateUnits() {
+      const conversionType = document.getElementById("conversionType").value;
+      const fromUnitSelect = document.getElementById("fromUnit");
+      const toUnitSelect = document.getElementById("toUnit");
+
+      fromUnitSelect.innerHTML = "";
+      toUnitSelect.innerHTML = "";
+
+      const units = conversionFactors[conversionType].units;
+      units.forEach(unit => {
+        const option1 = document.createElement("option");
+        option1.value = unit;
+        option1.text = unit;
+        fromUnitSelect.appendChild(option1);
+
+        const option2 = document.createElement("option");
+        option2.value = unit;
+        option2.text = unit;
+        toUnitSelect.appendChild(option2);
+      });
+
+      if (units.length > 1) toUnitSelect.selectedIndex = 1;
+      convert();
+    }
+
+    function updateUnits() {
+      populateUnits();
+    }
+
+    function convert() {
+      const conversionType = document.getElementById("conversionType").value;
+      const inputValue = parseFloat(document.getElementById("inputValue").value);
+      const fromUnit = document.getElementById("fromUnit").value;
+      const toUnit = document.getElementById("toUnit").value;
+      const outputValueSpan = document.getElementById("outputValue");
+      const formulaText = document.getElementById("formulaText");
+
+      if (isNaN(inputValue)) {
+        outputValueSpan.innerText = "Enter a valid number";
+        formulaText.innerText = "Enter a valid number to see the formula";
+        return;
+      }
+
+      if (fromUnit === toUnit) {
+        outputValueSpan.innerText = inputValue.toFixed(12);
+        formulaText.innerText = "No conversion needed (same unit)";
+        return;
+      }
+
+      const conversion = conversionFactors[conversionType];
+      let result;
+
+      if (conversion.convert) {
+        result = conversion.convert(inputValue, fromUnit, toUnit);
+      } else {
+        const toBase = inputValue * conversion.factors[fromUnit];
+        result = toBase / conversion.factors[toUnit];
+      }
+
+      outputValueSpan.innerText = result.toFixed(12);
+
+      const formulaKey = `${fromUnit}_to_${toUnit}`;
+      if (conversion.formulas && conversion.formulas[formulaKey]) {
+        formulaText.innerText = conversion.formulas[formulaKey];
+      } else {
+        formulaText.innerText = "Formula not available for this conversion";
+      }
+    }
+
+    populateUnits();
+    document.getElementById("inputValue").addEventListener("input", convert);
+    document.getElementById("fromUnit").addEventListener("change", convert);
+    document.getElementById("toUnit").addEventListener("change", convert);
+  </script>
+</body>
+</html>
